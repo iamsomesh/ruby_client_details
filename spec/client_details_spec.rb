@@ -1,47 +1,101 @@
-require 'json'
-require_relative '../client_details'
+# frozen_string_literal: true
 
-JSON_DATA = [
-  { 'full_name' => 'John Doe', 'email' => 'john.doe@gmail.com' },
-  { 'full_name' => 'Alice Smith', 'email' => 'alice@example.com' },
-  { 'full_name' => 'Bob Johnson', 'email' => 'bob@example.com' },
-  { 'full_name' => 'Jane Doe', 'email' => 'jane@example.com' },
-  { 'full_name' => 'Eve Johnson', 'email' => 'eve@example.com' }
-].freeze
+require 'json'
+require_relative '../app/client_explorer'
 
 describe ClientDetails do
-  before(:each) do
-    File.write('clients.json', JSON.generate(JSON_DATA))
+  subject { described_class.new(options) }
+
+  let(:test_file_path) { File.join('spec', 'support', 'clients.json') }
+  let(:search_field) { 'first_name' }
+  let(:options) { {} }
+
+  before do
+    stub_const('ClientDetails::DEFAULT_DATA_SOURCE', test_file_path)
   end
 
-  after(:each) do
-    File.delete('clients.json') if File.exist?('clients.json')
+  describe '.search' do
+    let(:query) { 'Alice' }
+    let(:result) { subject.search(query) }
+
+    context 'when searching without specifying search_field' do
+      let(:valid_output) { [{ 'id' => 2, 'full_name' => 'Alice Smith', 'email' => 'alice@example.com' }] }
+
+      it 'returns valid search results' do
+        expect(result).to eq valid_output
+        expect(result.count).to be 1
+      end
+    end
+
+    context 'when searching by specific field' do
+      let(:query) { 'duplicate@example.com' }
+      let(:options) { { search_field: } }
+      let(:valid_output) do
+        [{ 'id' => 3, 'full_name' => 'Bob Johnson', 'email' => 'duplicate@example.com' },
+         { 'id' => 6, 'full_name' => 'Bob Johnson', 'email' => 'duplicate@example.com' }]
+      end
+
+      context 'with valid field' do
+        let(:search_field) { 'email' }
+
+        it 'returns valid search results' do
+          expect(result).to eq valid_output
+          expect(result.count).to be 2
+        end
+      end
+
+      context 'with invalid field' do
+        let(:search_field) { 'invalid_field' }
+
+        it 'raises InvalidSearchFieldError' do
+          expect { result }.to raise_error(InvalidSearchFieldError)
+        end
+      end
+    end
+
+    context 'when json is not valid' do
+      let(:invalid_file_content) { '' }
+
+      before do
+        allow(File).to receive(:read).and_return invalid_file_content
+      end
+
+      it 'raises InvalidJsonError' do
+        expect { result }.to raise_error(InvalidJsonError)
+      end
+    end
+
+    context 'when search string is invalid' do
+      let(:query) { '' }
+
+      it 'raises InvalidSearchStringError' do
+        expect { result }.to raise_error(InvalidSearchStringError)
+      end
+    end
   end
 
-  subject(:client_details) { described_class.new('clients.json') }
+  describe '.list_duplicates' do
+    let(:result) { subject.list_duplicates }
 
-  context 'when searching' do
-    it 'finds clients by full name' do
-      expect { client_details.search('full_name', 'John') }.to output(/John Doe/).to_stdout
+    context 'when duplicates are found' do
+      let(:valid_output) do
+        { 'duplicate@example.com' => [{ 'id' => 3, 'full_name' => 'Bob Johnson', 'email' => 'duplicate@example.com' },
+                                      { 'id' => 6, 'full_name' => 'Bob Johnson', 'email' => 'duplicate@example.com' }] }
+      end
+
+      it 'returns duplicate records' do
+        expect(result).to eq valid_output
+        expect(result.count).to be 1
+      end
     end
 
-    it 'finds clients by email' do
-      expect { client_details.search('email', 'john.doe@gmail.com') }.to output(/john.doe@gmail.com/).to_stdout
-    end
+    context 'with invalid file path' do
+      let(:invalid_file_path) { File.join('invalid_file_path') }
+      let(:options) { { file_path: invalid_file_path } }
 
-    it 'handles not found' do
-      expect { client_details.search('full_name', 'Nonexistent') }.to output(/Full_name not found/).to_stdout
-    end
-  end
-
-  context 'when finding duplicates' do
-    it 'finds clients with duplicate emails' do
-      expect { client_details.find_duplicates('jane@example.com') }.to output(/Clients with duplicate emails:/).to_stdout
-    end
-    
-
-    it 'handles not found' do
-      expect { client_details.find_duplicates('nonexistent@email.com') }.to output(/No clients with duplicate emails found/).to_stdout
+      it 'raises FileNotFoundError' do
+        expect { result }.to raise_error(FileNotFoundError)
+      end
     end
   end
 end
