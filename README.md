@@ -1,38 +1,70 @@
-#### 1. Install Ruby 3.0.0
+# Client Search Tool (ClientExplorer)
+This command-line tool allows you to search through client data and perform various operations. It's built using Ruby 3.2.2 and utilizes RVM for Ruby version management.
 
-[Install RVM](https://rvm.io/rvm/install)
+## 1. Prerequisites
+Before using this tool, ensure you have the following prerequisites:
+- Ruby 3.2.2 installed on your system.
+To install Ruby using RVM, you can follow the instructions [here](https://rvm.io/rvm/install).
+- Run bundle install to install the dependencies.
+    ```bash
+    bundle
+    ```
 
-After installing go to project directory and install 3.0.0 ruby version
-```
-cd [your-path]/[project-name]
-rvm install 3.0.0
-```
-
-#### 2. Run the script for Search through all clients and return those with names
-
-Just example:
-```
-ruby app.rb search "Emma"
-```
-
-#### 3. Find out if there are any clients with the same email
-
-Just example:
-```
-ruby app.rb find_duplicates "jane.smith@yahoo.com"
+## 3. Running the Test Suite
+You can run the test suite with following command.
+```bash
+rspec
 ```
 
-### 4.  if we wanted to accept any JSON file and find out the same above results
+## 2. Running the Script
+You can run the script with various options to search for clients, list all client or list duplicates.
 
-Just example:
-```
-ruby app.rb search "Emma" --filename clients.json
-ruby app.rb find_duplicates "jane.smith@yahoo.com" --filename clients.json
+### List All Clients
+To list all clients use the following command:
+
+```bash
+ruby app.rb list
 ```
 
-### 4. Search with user specifies field
+### Search for Clients by Name
+To search for clients by name, use the following command:
 
-Just example:
+```bash
+ruby app.rb search 'Emma'
+ruby app.rb search 'Jo'
 ```
-ruby app.rb search email "jane.smith@yahoo.com"
+
+### List Clients with the Same Email
+To list clients with the same email, use the following command:
+
+```bash
+ruby app.rb list_duplicates
 ```
+
+### Using a JSON File
+You can also provide a JSON file containing client data and perform the same operations as above. To do this, specify the --file_path option:
+
+```bash
+ruby app.rb search 'Johnson' --file_path path/to/valid/json/file
+ruby app.rb search 'duplicate@example.com' --file_path path/to/valid/json/file --search_field email
+ruby app.rb list_duplicates --file_path path/to/valid/json/file
+```
+
+### Search with User-Specified Field
+If you want to search based on a specific field (e.g., email), you can specify the field name:
+
+```bash
+ruby app.rb search 'jane.smith@yahoo.com' --search_field email
+```
+
+## Note
+- This script is using Thor Gem to build a Interactive CLI.
+- Awesome Print is being used to format the output.
+
+## Things can be covered in future
+- Can integrate more business logic as required to interact with data
+- We can specify the fields we want in return like if we just want name or email etc instead of all fields.
+- The script can be customized to add support for various functions with some sort of Database to support Persisted Data & CRUD operations.
+- The business logic can be served over http using APIs
+- We can add pagination if there are lot of records.
+- We can make use to cache & some Memoization techniques by modifying the application behaviour slightly.
